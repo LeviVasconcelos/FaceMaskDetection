@@ -132,6 +132,6 @@ if __name__ == "__main__":
     try:
         rospy.spin()
     except KeyboardInterrupt:
-        print "Shutting down ROS Image feature detector module"
+        print("Shutting down ROS Image feature detector module")
 
 
