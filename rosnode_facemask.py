@@ -26,7 +26,7 @@ class MaskDetector:
         # self.bridge = CvBridge()
         # subscribed Topic
         self.subscriber = rospy.Subscriber("/camera/image/compressed",
-                                            CompressedImage, self.callback,  queue_size = 1)
+                                            CompressedImage, self._callback,  queue_size = 1)
         #self.model = load_pytorch_model('models/face_mask_detection.pth');
         self.model = load_pytorch_model('models/model360.pth');
         # anchor configuration
