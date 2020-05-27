@@ -1,6 +1,6 @@
 import sys
 import torch
-sys.path.append('models/')
+sys.path.append('/ari_public_ws/src/FaceMaskDetection/models/')
 
 def load_pytorch_model(model_path):
     model = torch.load(model_path)
