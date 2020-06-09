@@ -22,7 +22,7 @@ class MaskDetector:
     def __init__(self):
         '''Initialize ros publisher, ros subscriber'''
         # topic where we publish
-        self.image_pub = rospy.Publisher("/output/face_mask",
+        self.image_pub = rospy.Publisher("/output/face_mask/compressed",
                                           CompressedImage)
         # self.bridge = CvBridge()
         # subscribed Topic
