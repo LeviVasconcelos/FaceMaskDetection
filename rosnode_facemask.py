@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
+import sys
 import cv2
 import time
 
@@ -10,19 +11,20 @@ from utils.anchor_generator import generate_anchors
 from utils.anchor_decode import decode_bbox
 from utils.nms import single_class_non_max_suppression
 from load_model.pytorch_loader import load_pytorch_model, pytorch_inference
-
 # Ros libraries
 import roslib
 import rospy
 # Ros Messages
 from sensor_msgs.msg import CompressedImage
 
+sys.path.append('/usr/local/python')
+from openpose import pyopenpose as op
 
 class MaskDetector:
     def __init__(self):
         '''Initialize ros publisher, ros subscriber'''
         # topic where we publish
-        self.image_pub = rospy.Publisher("/output/face_mask",
+        self.image_pub = rospy.Publisher("/output/face_mask/compressed",
                                           CompressedImage)
         # self.bridge = CvBridge()
         # subscribed Topic
@@ -43,6 +45,14 @@ class MaskDetector:
         # so we expand dim for anchors to [1, anchor_num, 4]
         self.anchors_exp = np.expand_dims(anchors, axis=0)
         self.id2class = {0: 'Mask', 1: 'NoMask'}
+        self.opParams = dict()
+        self.opParams["model_folder"] = "/openpose/models/"
+        self.opParams["face"] = True
+        self.opParams["hand"] = True
+        self.opWrapper = op.WrapperPython()
+        self.opWrapper.configure(params)
+        self.opWrapper.start()
+
 
     def _callback(self, ros_data):
         ''' callback function for mask detection '''
@@ -51,15 +61,28 @@ class MaskDetector:
         #image_np = cv2.imdecode(np_arr, cv2.CV_LOAD_IMAGE_COLOR)
         image_np = cv2.imdecode(np_arr, cv2.IMREAD_COLOR) # OpenCV >= 3.0:
         rospy.loginfo(image_np.shape)
-
         boxes, image = self.inference(image_np, target_shape=(360, 360))
+ 
+        # Openpose Process Image
+        datum = op.Datum()
+        imageToProcess = cv2.imread(args[0].image_path)
+        datum.cvInputData = imageToProcess
+        self.opWrapper.emplaceAndPop([datum])
+        openpose_out = datum.cvOutputData
 
+        # output_info.append([class_id, conf, xmin, ymin, xmax, ymax])
+        for bbox in boxes:
+            class_id, conf, xmin, ymin, xmax, ymax = bbox
+            color = (0, 255, 0) if class_id == 0 else (255, 0, 0)
+            cv2.rectangle(openpose_out, (xmin, ymin), (xmax, ymax), color, 2)
+            cv2.putText(image, "%s: %.2f" % (self.id2class[class_id], conf), (xmin + 2, ymin - 2),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, color)
 
         #### Create Compressed Image ####
         msg = CompressedImage()
         msg.header.stamp = rospy.Time.now()
         msg.format = "jpeg"
-        msg.data = np.array(cv2.imencode('.jpg', image)[1]).tostring()
+        msg.data = np.array(cv2.imencode('.jpg', openpose_out)[1]).tostring()
         # Publish new image
         self.image_pub.publish(msg)
         #self.subscriber.unregister()
