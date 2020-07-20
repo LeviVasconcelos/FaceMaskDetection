@@ -16,7 +16,7 @@ import roslib
 import rospy
 # Ros Messages
 from sensor_msgs.msg import CompressedImage
-
+##
 sys.path.append('/usr/local/python')
 from openpose import pyopenpose as op
 
@@ -50,7 +50,7 @@ class MaskDetector:
         self.opParams["face"] = True
         self.opParams["hand"] = True
         self.opWrapper = op.WrapperPython()
-        self.opWrapper.configure(params)
+        self.opWrapper.configure(self.opParams)
         self.opWrapper.start()
 
 
@@ -65,8 +65,7 @@ class MaskDetector:
  
         # Openpose Process Image
         datum = op.Datum()
-        imageToProcess = cv2.imread(args[0].image_path)
-        datum.cvInputData = imageToProcess
+        datum.cvInputData = image_np
         self.opWrapper.emplaceAndPop([datum])
         openpose_out = datum.cvOutputData
 
@@ -75,7 +74,7 @@ class MaskDetector:
             class_id, conf, xmin, ymin, xmax, ymax = bbox
             color = (0, 255, 0) if class_id == 0 else (255, 0, 0)
             cv2.rectangle(openpose_out, (xmin, ymin), (xmax, ymax), color, 2)
-            cv2.putText(image, "%s: %.2f" % (self.id2class[class_id], conf), (xmin + 2, ymin - 2),
+            cv2.putText(openpose_out, "%s: %.2f" % (self.id2class[class_id], conf), (xmin + 2, ymin - 2),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, color)
 
         #### Create Compressed Image ####
