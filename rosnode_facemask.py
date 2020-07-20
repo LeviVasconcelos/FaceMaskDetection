@@ -79,7 +79,8 @@ class MaskDetector:
 
         #### Create Compressed Image ####
         msg = CompressedImage()
-        msg.header.stamp = rospy.Time.now()
+        #msg.header.stamp = rospy.Time.now()
+        msg.header.stamp = ros_data.header
         msg.format = "jpeg"
         msg.data = np.array(cv2.imencode('.jpg', openpose_out)[1]).tostring()
         # Publish new image
