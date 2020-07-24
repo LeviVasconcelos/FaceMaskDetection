@@ -16,9 +16,20 @@ import roslib
 import rospy
 # Ros Messages
 from sensor_msgs.msg import CompressedImage
+from face_mask.msg import BoundingBox, MaskFrame
 ##
 sys.path.append('/usr/local/python')
 from openpose import pyopenpose as op
+
+def BoxToMessage(bbox):
+    class_id, conf, xmin, ymin, xmax, ymax = bbox
+    msg = BoundingBox()
+    msg.class_id = class_id
+    msg.conf_score = conf
+    msg.bbox = [xmin, ymin, xmax, ymax]
+    return msg
+
+
 
 class MaskDetector:
     def __init__(self):
@@ -26,6 +37,7 @@ class MaskDetector:
         # topic where we publish
         self.image_pub = rospy.Publisher("/output/face_mask/compressed",
                                           CompressedImage)
+        self.face_pub = rospy.Publisher("/output/face_mask/faces", MaskFrame)
         # self.bridge = CvBridge()
         # subscribed Topic
         self.subscriber = rospy.Subscriber("/head_front_camera/image_raw/compressed",
@@ -54,6 +66,7 @@ class MaskDetector:
         self.opWrapper.start()
 
 
+        
     def _callback(self, ros_data):
         ''' callback function for mask detection '''
         #### direct conversion to CV2 ####
@@ -70,7 +83,10 @@ class MaskDetector:
         openpose_out = datum.cvOutputData
 
         # output_info.append([class_id, conf, xmin, ymin, xmax, ymax])
+        face_msg = MaskFrame()
+        face_msg.header.stamp = rospy.Time.now()
         for bbox in boxes:
+            face_msg.bboxes.append(BoxToMessage(bbox))
             class_id, conf, xmin, ymin, xmax, ymax = bbox
             color = (0, 255, 0) if class_id == 0 else (255, 0, 0)
             cv2.rectangle(openpose_out, (xmin, ymin), (xmax, ymax), color, 2)
@@ -80,11 +96,12 @@ class MaskDetector:
         #### Create Compressed Image ####
         msg = CompressedImage()
         #msg.header.stamp = rospy.Time.now()
-        msg.header.stamp = ros_data.header
+        msg.header = ros_data.header
         msg.format = "jpeg"
         msg.data = np.array(cv2.imencode('.jpg', openpose_out)[1]).tostring()
         # Publish new image
         self.image_pub.publish(msg)
+        self.face_pub.publish(face_msg)
         #self.subscriber.unregister()
 
 

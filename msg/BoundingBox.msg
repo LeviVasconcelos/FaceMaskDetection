@@ -1,3 +1,4 @@
 # Bounding Box for a face
-string label
+float32 class_id 
+float32 conf_score
 float32[] bbox
