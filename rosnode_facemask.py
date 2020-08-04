@@ -18,8 +18,6 @@ import rospy
 from sensor_msgs.msg import CompressedImage
 from face_mask.msg import BoundingBox, MaskFrame
 ##
-sys.path.append('/usr/local/python')
-from openpose import pyopenpose as op
 
 def BoxToMessage(bbox):
     class_id, conf, xmin, ymin, xmax, ymax = bbox
@@ -57,13 +55,6 @@ class MaskDetector:
         # so we expand dim for anchors to [1, anchor_num, 4]
         self.anchors_exp = np.expand_dims(anchors, axis=0)
         self.id2class = {0: 'Mask', 1: 'NoMask'}
-        self.opParams = dict()
-        self.opParams["model_folder"] = "/openpose/models/"
-        self.opParams["face"] = True
-        self.opParams["hand"] = True
-        self.opWrapper = op.WrapperPython()
-        self.opWrapper.configure(self.opParams)
-        self.opWrapper.start()
 
 
         
@@ -76,12 +67,6 @@ class MaskDetector:
         rospy.loginfo(image_np.shape)
         boxes, image = self.inference(image_np, target_shape=(360, 360))
  
-        # Openpose Process Image
-        datum = op.Datum()
-        datum.cvInputData = image_np
-        self.opWrapper.emplaceAndPop([datum])
-        openpose_out = datum.cvOutputData
-
         # output_info.append([class_id, conf, xmin, ymin, xmax, ymax])
         face_msg = MaskFrame()
         face_msg.header.stamp = rospy.Time.now()
@@ -89,8 +74,8 @@ class MaskDetector:
             face_msg.bboxes.append(BoxToMessage(bbox))
             class_id, conf, xmin, ymin, xmax, ymax = bbox
             color = (0, 255, 0) if class_id == 0 else (255, 0, 0)
-            cv2.rectangle(openpose_out, (xmin, ymin), (xmax, ymax), color, 2)
-            cv2.putText(openpose_out, "%s: %.2f" % (self.id2class[class_id], conf), (xmin + 2, ymin - 2),
+            cv2.rectangle(image_np, (xmin, ymin), (xmax, ymax), color, 2)
+            cv2.putText(image_np, "%s: %.2f" % (self.id2class[class_id], conf), (xmin + 2, ymin - 2),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, color)
 
         #### Create Compressed Image ####
@@ -98,7 +83,7 @@ class MaskDetector:
         #msg.header.stamp = rospy.Time.now()
         msg.header = ros_data.header
         msg.format = "jpeg"
-        msg.data = np.array(cv2.imencode('.jpg', openpose_out)[1]).tostring()
+        msg.data = np.array(cv2.imencode('.jpg', image_np)[1]).tostring()
         # Publish new image
         self.image_pub.publish(msg)
         self.face_pub.publish(face_msg)
