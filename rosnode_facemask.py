@@ -33,12 +33,12 @@ class MaskDetector:
     def __init__(self):
         '''Initialize ros publisher, ros subscriber'''
         # topic where we publish
-        self.image_pub = rospy.Publisher("/output/face_mask/compressed",
+        self.image_pub = rospy.Publisher("/face_mask/output/compressed",
                                           CompressedImage)
-        self.face_pub = rospy.Publisher("/output/face_mask/faces", MaskFrame)
+        self.face_pub = rospy.Publisher("/face_mask/output/faces", MaskFrame)
         # self.bridge = CvBridge()
         # subscribed Topic
-        self.subscriber = rospy.Subscriber("/head_front_camera/image_raw/compressed",
+        self.subscriber = rospy.Subscriber("/face_mask/input/image",
                                             CompressedImage, self._callback,  queue_size = 1)
         #self.model = load_pytorch_model('models/face_mask_detection.pth');
         self.model = load_pytorch_model('/ari_public_ws/src/FaceMaskDetection/models/model360.pth');
