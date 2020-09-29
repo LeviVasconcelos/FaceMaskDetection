@@ -38,7 +38,7 @@ class MaskDetector:
         self.face_pub = rospy.Publisher("/face_mask/output/faces", MaskFrame)
         # self.bridge = CvBridge()
         # subscribed Topic
-        self.subscriber = rospy.Subscriber("/face_mask/input/image",
+        self.subscriber = rospy.Subscriber("/face_mask/input/compressed",
                                             CompressedImage, self._callback,  queue_size = 1)
         #self.model = load_pytorch_model('models/face_mask_detection.pth');
         self.model = load_pytorch_model('/ari_public_ws/src/FaceMaskDetection/models/model360.pth');
@@ -60,6 +60,7 @@ class MaskDetector:
         
     def _callback(self, ros_data):
         ''' callback function for mask detection '''
+        rospy.loginfo("[DETECTOR] image received!")
         #### direct conversion to CV2 ####
         np_arr = np.fromstring(ros_data.data, np.uint8)
         #image_np = cv2.imdecode(np_arr, cv2.CV_LOAD_IMAGE_COLOR)
